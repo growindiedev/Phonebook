@@ -66,7 +66,7 @@ app.delete('/api/persons/:id', (req, res) => {
     if(person){
         const index = persons.indexOf(person)
         persons.splice(index, 1)
-        res.json(persons)
+        response.status(204).end()
     } else {
         res.status(404).send('person not found')
     } 
@@ -76,7 +76,7 @@ app.delete('/api/persons/:id', (req, res) => {
 app.post('/api/persons', (req, res) => {
     //console.log(req.body)
     const {name, number} = req.body
-
+    const person = {name: name, number: number, id: uuid.v1()}
     if(!name || !number){
         return res.json({error: "The name or number is missing"})
     } else if (persons.find(per => per.name === name)){
@@ -84,9 +84,9 @@ app.post('/api/persons', (req, res) => {
     } else if (persons.find(per => per.number === number)){
         return res.json({error: "The number must be unique"})
     } 
-        persons = persons.concat({name: name, number: number, id: uuid.v1()})
+        persons = persons.concat(person)
         //console.log(persons)
-        return res.json(persons)
+        return res.json(person)
     })
 
 
