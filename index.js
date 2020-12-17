@@ -3,8 +3,10 @@ const express = require('express')
 const app = express()
 const uuid = require('uuid')
 const morgan = require('morgan')
+const cors = require('cors')
 
 app.use(express.json())
+app.use(cors())
 
 morgan.token('body', (req, res) => console.log(JSON.stringify(req.body)));	
 app.use(morgan(":method :url :status :response-time ms :body"))
@@ -30,7 +32,12 @@ let persons = [
       name: "Mary Poppendieck",
       number: "39-23-6423122",
       id: 4
-    }
+    },
+    {
+        name: "Laura Otter",
+        number: "0000-sweetheart",
+        id: 4
+      }
   ]
 
 app.get('/api/persons', (req, res) => {
@@ -83,7 +90,7 @@ app.post('/api/persons', (req, res) => {
 
 
 
-const PORT = 3001
-app.listen(PORT, () => {
+    const PORT = process.env.PORT || 3001
+    app.listen(PORT, () => {
     console.log(`server running on port ${PORT}`)
 })
