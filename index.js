@@ -67,7 +67,7 @@ app.delete('/api/persons/:id', async (req, res, next) => {
 
 
 app.post('/api/persons', async (req, res, next) => {
-    
+    try{
         const {name, number} = req.body
         if(!name || !number){
              res.status(400).json({error: "The name or number is missing"})
@@ -76,7 +76,7 @@ app.post('/api/persons', async (req, res, next) => {
         const person = new Person({
             name: name, number:number
         })
-        try{
+        
             const savedPerson = await person.save()
             res.send(savedPerson)
         }
