@@ -1,97 +1,136 @@
 const { response, json } = require('express')
 const express = require('express')
 const app = express()
-const uuid = require('uuid')
 const morgan = require('morgan')
 const cors = require('cors')
+const { Person } = require('./models/people.js')
+
 
 app.use(express.json())
 app.use(cors())
-app.use(express.static('build'))
+app.use(express.static('build')) 
 
 morgan.token('body', (req, res) => console.log(JSON.stringify(req.body)));	
 app.use(morgan(":method :url :status :response-time ms :body"))
 
 
-let persons = [
-    {
-      name: "Arto Hellas",
-      number: "040-123456",
-      id: 1
-    },
-    {
-      name: "Ada Lovelace",
-      number: "39-44-5323523",
-      id: 2
-    },
-    {
-      name: "Dan Abramov",
-      number: "12-43-234345",
-      id: 3
-    },
-    {
-      name: "Mary Poppendieck",
-      number: "39-23-6423122",
-      id: 4
-    },
-    {
-        name: "Laura Otter",
-        number: "0000-sweetheart",
-        id: 4
-      }
-  ]
 
-app.get('/api/persons', (req, res) => {
-    res.json(persons)
+
+app.get('/api/persons', async (req, res, next) => {
+    try {
+        const people = await Person.find({})
+        res.json(people)
+    } catch (err) {
+        next(err)
+    }
 })
 
-app.get('/api/info', (req,res) => {
-    res.send(`<p>Phonebook has info for ${persons.length} people</p> `)
-})
-
-app.get('/api/persons/:id', (req,res) => {
-    const id = Number(req.params.id)
-    const person = persons.find(person => id === person.id)
-
-    if(person) {
-        res.json(person)
-    } else {
-        res.status(404).send('person not found')
-    } 
-})
-
-app.delete('/api/persons/:id', (req, res) => {
-    const id = Number(req.params.id)
-    const person = persons.find(person => id === person.id)
-    if(person){
-        const index = persons.indexOf(person)
-        persons.splice(index, 1)
-        response.status(204).end()
-    } else {
-        res.status(404).send('person not found')
-    } 
+app.get('/api/info', async (req,res, next) => {
+    
+    try {
+        const people = await Person.find({})
+        res.send(`<p>Phonebook has info for ${people.length} people</p> `)
+    } catch(err){
+        next(err)
+    }
 
 })
 
-app.post('/api/persons', (req, res) => {
-    //console.log(req.body)
-    const {name, number} = req.body
-    const person = {name: name, number: number, id: uuid.v1()}
-    if(!name || !number){
-        return res.json({error: "The name or number is missing"})
-    } else if (persons.find(per => per.name === name)){
-        return res.json({error: "The name must be unique"})
-    } else if (persons.find(per => per.number === number)){
-        return res.json({error: "The number must be unique"})
-    } 
-        persons = persons.concat(person)
-        //console.log(persons)
-        return res.json(person)
+app.get('/api/persons/:id', async (req,res, next) => {
+    try {
+            const personFound = await Person.findById(req.params.id)
+            if(personFound){
+                res.json(personFound)
+            } else (
+                res.status(404).end()
+            )
+     }   
+    catch (err) {
+            next(err)
+     }
+
+})
+
+app.delete('/api/persons/:id', async (req, res, next) => {
+    
+    try {
+            const personFound = await Person.findById(req.params.id)
+            if(personFound){
+                await Person.findByIdAndDelete(req.params.id)
+                res.status(204).end()
+            } else (
+                res.status(404).end()
+            )
+     }   
+    catch (err) {
+            next(err)
+     }
+})
+
+
+app.post('/api/persons', async (req, res, next) => {
+    try{
+        const {name, number} = req.body
+        if(!name || !number){
+            return res.json({error: "The name or number is missing"})
+        }
+    
+        const person = new Person({
+            name, number
+        })
+            const savedPerson = await person.save()
+            return res.json(savedPerson)
+        }
+     catch (err){
+        next(err)
+    }
+})
+
+
+app.put('/api/persons/:id', async (req, res, next) => {
+    
+    try {
+            const personFound = await Person.findById(req.params.id)
+            const newPerson = {
+                name: req.body.name,
+                number: req.body.number
+            }
+
+            if(personFound){
+                const updatedPerson = await Person.findByIdAndUpdate(req.params.id, newPerson, {new: true})
+                res.json(updatedPerson)
+            } else (
+                res.status(404).end()
+            )
+     }   
+    catch (err) {
+            next(err)
+     }
+})
+
+
+app.use((req, res) => {
+        res.status(404).send({ error: 'unknown endpoint' })
     })
+
+
+app.use((err, req, res, next) => {
+     const { status = 500, message = 'Something went wrong', name} = err;
+    if (name === 'CastError') {
+        return res.status(400).send({ error: 'malformatted id' })
+        } 
+
+    res.status(status).send(message)
+    next(err)
+ })
+
+    
 
 
 
     const PORT = process.env.PORT || 3001
     app.listen(PORT, () => {
     console.log(`server running on port ${PORT}`)
-})
+    })
+
+
