@@ -6,8 +6,8 @@ const cors = require('cors')
 const { Person } = require('./models/people.js')
 
 
-app.use(express.json())
 app.use(cors())
+app.use(express.json())
 app.use(express.static('build')) 
 
 morgan.token('body', (req, res) => console.log(JSON.stringify(req.body)));	
@@ -17,21 +17,19 @@ app.use(morgan(":method :url :status :response-time ms :body"))
 
 
 app.get('/api/persons', async (req, res, next) => {
-    try {
+    
         const people = await Person.find({})
-        res.json(people)
-    } catch (err) {
-        next(err)
-    }
+        return res.json(people)
+   
 })
 
 app.get('/api/info', async (req,res, next) => {
     
     try {
-        const people = await Person.find({})
-        res.send(`<p>Phonebook has info for ${people.length} people</p> `)
-    } catch(err){
-        next(err)
+        const people = await Person.count({})
+        res.send(`<p>Phonebook has info for ${people} people</p> `)
+    } catch(error){
+        next(error)
     }
 
 })
@@ -45,8 +43,8 @@ app.get('/api/persons/:id', async (req,res, next) => {
                 res.status(404).end()
             )
      }   
-    catch (err) {
-            next(err)
+    catch (error) {
+            next(error)
      }
 
 })
@@ -62,27 +60,28 @@ app.delete('/api/persons/:id', async (req, res, next) => {
                 res.status(404).end()
             )
      }   
-    catch (err) {
-            next(err)
+    catch (error) {
+            next(error)
      }
 })
 
 
 app.post('/api/persons', async (req, res, next) => {
-    try{
+    
         const {name, number} = req.body
         if(!name || !number){
-            return res.json({error: "The name or number is missing"})
+             res.status(400).json({error: "The name or number is missing"})
         }
     
         const person = new Person({
-            name, number
+            name: name, number:number
         })
+        try{
             const savedPerson = await person.save()
-            return res.json(savedPerson)
+            res.send(savedPerson)
         }
-     catch (err){
-        next(err)
+     catch (error){
+        next(error)
     }
 })
 
@@ -103,26 +102,28 @@ app.put('/api/persons/:id', async (req, res, next) => {
                 res.status(404).end()
             )
      }   
-    catch (err) {
-            next(err)
+    catch (error) {
+            next(error)
      }
 })
 
 
+
 app.use((req, res) => {
-        res.status(404).send({ error: 'unknown endpoint' })
-    })
+    res.status(404).send({ error: 'unknown endpoint' })
+})
 
-
-app.use((err, req, res, next) => {
-     const { status = 500, message = 'Something went wrong', name} = err;
-    if (name === 'CastError') {
-        return res.status(400).send({ error: 'malformatted id' })
-        } 
-
-    res.status(status).send(message)
-    next(err)
+app.use((error, req, res, next) => {
+    const { message = 'Something went wrong'} = error;
+     if (error === 'CastError' && err == 'ObjectId') {
+         res.status(400).json({ error: 'malformatted id' })
+    } else if (error === 'ValidationError') {
+         res.status(400).json({ error: message })
+    }
+    next(error)
  })
+
+
 
     
 
